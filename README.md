@@ -1,4 +1,309 @@
-# 🎵 Spotify Global Top Songs 2026 : Analytics dashboard
+**Choose your language · Choisissez votre langue**
+
+[![EN](https://img.shields.io/badge/English-0d1117?style=for-the-badge&logoColor=00f5ff)](#english-version)
+&nbsp;&nbsp;
+[![FR](https://img.shields.io/badge/Français-0d1117?style=for-the-badge&logoColor=00f5ff)](#version-française)
+
+---
+
+<a name="english-version"></a>
+
+# Spotify global top songs 2026 : analytics dashboard
+
+> Data analysis and visualization project based on Spotify Global Charts 2026, available in two formats: **interactive web dashboard** (HTML/CSS/JS) and **Excel workbook**.
+
+---
+
+## Project structure
+
+```
+spotify-dashboard-2026/
+│
+├── spotify-dashboard-2026.html     # Interactive web dashboard
+├── spotify-dashboard-2026.xlsx     # Excel workbook
+└── README.md                       # This file
+```
+
+---
+
+## Data source
+
+| Field | Detail |
+|---|---|
+| **Dataset** | Spotify Global Top Songs 2026 |
+| **Source** | [Kaggle — mkaur1141](https://www.kaggle.com/datasets/mkaur1141/spotify-global-top-songs-2026) |
+| **Period** | 2026 (global snapshot) |
+| **Volume** | 200 tracks, 13 variables |
+
+### Available variables
+
+| Column | Type | Description |
+|---|---|---|
+| `track_name` | string | Track title |
+| `artist_name` | string | Main artist |
+| `streams` | int | Daily streams |
+| `stream_change` | int | Change vs previous day (positive = increase) |
+| `7day` | int | Total streams over 7 rolling days |
+| `genre` | string | Music genre |
+| `country` | string | Artist's country of origin |
+| `pos` | int | Position in global ranking |
+| `days` | int | Consecutive days in chart |
+| `viral_score` | int | Combined viral score (streams + engagement) |
+| `trend` | string | `Rising` / `Falling` |
+| `popularity_category` | string | `Trending` / `Average` |
+| `longevity` | string | `Evergreen` / `Stable Hit` / `New` |
+
+---
+
+## Methodology & formulas
+
+### 1. Main KPIs
+
+Key indicators are dynamically calculated in the **Dashboard** tab via Excel formulas referencing the `Raw_Data` sheet.
+
+#### Total Streams
+```excel
+=SUM(Raw_Data!C2:C201)
+```
+Raw sum of all daily streams across 200 tracks.
+
+#### Average Streams per Track
+```excel
+=AVERAGE(Raw_Data!C2:C201)
+```
+
+#### Number of Rising Tracks
+```excel
+=COUNTIF(Raw_Data!K2:K201, "Rising")
+```
+Counts tracks where the `trend` column equals `"Rising"`.
+
+#### Unique artists
+```excel
+=SUMPRODUCT(1/COUNTIF(Raw_Data!B2:B201, Raw_Data!B2:B201))
+```
+Dividing 1 by each artist's occurrence count, then summing, so each artist counts as 1 regardless of frequency.
+
+#### Average Days on Chart
+```excel
+=AVERAGE(Raw_Data!I2:I201)
+```
+Average of the `days` column, shows how long tracks have been in the ranking on average.
+
+#### Total 7-Day Streams
+```excel
+=SUM(Raw_Data!E2:E201)
+```
+
+#### Peak Streams (single track record)
+```excel
+=MAX(Raw_Data!C2:C201)
+```
+
+#### Trending Tracks
+```excel
+=COUNTIF(Raw_Data!L2:L201, "Trending")
+```
+
+#### Evergreen Tracks
+```excel
+=COUNTIF(Raw_Data!M2:M201, "Evergreen")
+```
+
+#### New Tracks
+```excel
+=COUNTIF(Raw_Data!M2:M201, "New")
+```
+
+---
+
+### 2. Genre analysis
+
+Calculated in the **Genre analysis** tab, for each genre:
+
+#### Tracks per Genre
+```excel
+=COUNTIF(Raw_Data!F$2:F$201, A3)
+```
+Where `A3` contains the genre name.
+
+#### Total Streams per Genre
+```excel
+=SUMIF(Raw_Data!F$2:F$201, A3, Raw_Data!C$2:C$201)
+```
+
+#### Average Streams per Genre
+```excel
+=IFERROR(SUMIF(Raw_Data!F$2:F$201, A3, Raw_Data!C$2:C$201) / COUNTIF(Raw_Data!F$2:F$201, A3), 0)
+```
+`IFERROR` prevents `#DIV/0!` errors if a genre has only one occurrence or is missing.
+
+#### Streaming Market Share (%)
+```excel
+=SUMIF(Raw_Data!F$2:F$201, A3, Raw_Data!C$2:C$201) / SUM(Raw_Data!C$2:C$201)
+```
+Formatted as `0.00%` in Excel.
+
+---
+
+### 3. Trend analysis
+
+#### Stream variation (stream change)
+The `stream_change` column represents the absolute difference in streams between day D and D-1:
+
+```
+stream_change = streams(D) - streams(D-1)
+```
+
+- **Positive** value → growing track (`Rising`)
+- **Negative** value → declining track (`Falling`)
+
+#### Ranking rising tracks
+```excel
+=LARGE(IF(Raw_Data!D$2:D$201>0, Raw_Data!D$2:D$201), ROW()-3)
+```
+Array formula (Ctrl+Shift+Enter) to extract the N biggest gains.
+
+#### Viral score
+The `viral_score` provided in the dataset is a composite indicator:
+```
+viral_score ≈ streams + (7day_streams × 0.5)
+```
+It combines immediate performance with weekly momentum.
+
+---
+
+### 4. Geographic analysis (Country analysis)
+
+#### Tracks per Country
+```excel
+=COUNTIF(Raw_Data!G$2:G$201, A3)
+```
+
+#### Total Streams per Country
+```excel
+=SUMIF(Raw_Data!G$2:G$201, A3, Raw_Data!C$2:C$201)
+```
+
+#### Unique Artists per Country
+```excel
+=SUMPRODUCT((Raw_Data!G$2:G$201=A3) / COUNTIFS(Raw_Data!G$2:G$201, Raw_Data!G$2:G$201, Raw_Data!B$2:B$201, Raw_Data!B$2:B$201))
+```
+Deduplication variant of `SUMPRODUCT`, filtered by country.
+
+#### Country Market Share
+```excel
+=SUMIF(Raw_Data!G$2:G$201, A3, Raw_Data!C$2:C$201) / SUM(Raw_Data!C$2:C$201)
+```
+
+---
+
+### 5. Conditional formatting
+
+| Rule | Column | Color |
+|---|---|---|
+| `stream_change > 0` | Stream Change | 🟢 Green `#1DB954` |
+| `stream_change < 0` | Stream Change | 🔴 Red `#FF4D6D` |
+| `trend = "Rising"` | Trend | 🟢 Green |
+| `trend = "Falling"` | Trend | 🔴 Red |
+| Color Scale min→max | Streams, Total Streams | Dark → cyan gradient |
+| `longevity = "Evergreen"` | Longevity | 🔵 Cyan `#00D4FF` |
+| `longevity = "Stable Hit"` | Longevity | 🟦 Teal `#00B8A0` |
+| `longevity = "New"` | Longevity | 🟡 Amber `#F5A623` |
+
+---
+
+## Design & visual identity
+
+The dashboard uses a personal **dark mode** palette inspired by my own portfolio:
+
+```css
+--bg:     #080B0F   /* Main background */
+--cyan:   #00D4FF   /* Primary accent — streams, key KPIs */
+--teal:   #00B8A0   /* Secondary accent — 7-day, countries */
+--amber:  #F5A623   /* Alert / New tracks */
+--blue:   #5B9CF6   /* Artists, secondary data */
+--green:  #1DB954   /* Rising / increase */
+--red:    #FF4D6D   /* Falling / decrease */
+--ink:    #E4EDF5   /* Main text */
+--mid:    #7A8FA0   /* Secondary text */
+--muted:  #435060   /* Subtle labels */
+```
+
+**Typography (web version):**
+- `Playfair Display` for headings (elegant serif)
+- `JetBrains Mono` for values, KPIs, technical labels
+- `DM Sans` for body text
+
+---
+
+## Tech stack
+
+### Web version (HTML)
+| Tool | Usage |
+|---|---|
+| HTML5 / CSS3 | Structure & layout |
+| Chart.js 4.4 | Charts (doughnut, horizontal bar) |
+| Vanilla JS | Filter logic, dynamic calculations |
+| CSS Variables | Consistent theming |
+| IntersectionObserver | Scroll animations |
+
+### Excel version
+| Tool | Usage |
+|---|---|
+| Excel Formulas | Dynamic KPIs, aggregations |
+| Conditional Formatting | Color scales, visual rules |
+| Auto Filters | Navigation in Raw_Data |
+
+---
+
+## Key insights
+
+- **BTS dominates** the top 10 with 9 tracks from a single album release, accumulating over **50M streams** in two days, a textbook K-Pop launch spike.
+- **Evergreen tracks** (e.g. *Mr. Brightside*, *Creep*, *Sweater Weather*) sustain 1.5M–2.5M streams/day years after release, with `days` values sometimes exceeding **2,000 days**.
+- **Pop remains the dominant genre** by track volume, but **Reggaeton** (Bad Bunny) and **Regional Mexicano** (Peso Pluma, Fuerza Regida) command a disproportionate share of Latin streams.
+- **The US and UK** together account for over 50% of charting tracks, yet South Korea (`KR`) monopolizes the entire top 12 during this period.
+- **Rising** tracks gain an average of **+75K streams/day**, versus **-280K/day** for falling tracks, a classic asymmetry in chart dynamics.
+
+---
+
+## Getting started
+
+```bash
+# Clone the repo
+git clone https://github.com/your-username/spotify-dashboard-2026.git
+cd spotify-dashboard-2026
+
+# Open the web dashboard
+open spotify-dashboard-2026.html
+# or just double-click the file
+
+# Open the Excel workbook
+open spotify_dashboard_2026.xlsx
+```
+
+No dependencies to install for the web version — everything is self-contained.
+
+---
+
+## Roadmap
+
+- [ ] Connect to the official Spotify API for real-time data
+- [ ] Add a **correlation** tab (viral score vs longevity)
+- [ ] Integrate a position evolution timeline
+- [ ] Power BI version with interactive slicers
+- [ ] NLP analysis of track titles (length, language, sentiment)
+
+---
+
+*Dataset: Kaggle · [mkaur1141/spotify-global-top-songs-2026](https://www.kaggle.com/datasets/mkaur1141/spotify-global-top-songs-2026)*
+
+---
+---
+
+<a name="version-française"></a>
+
+# Spotify Global Top Songs 2026 : Dashboard 
 
 > Projet d'analyse et de visualisation des données Spotify Global Charts 2026, décliné en deux formats : **dashboard web interactif** (HTML/CSS/JS) et **classeur excel**.
 
@@ -10,7 +315,7 @@
 spotify-dashboard-2026/
 │
 ├── spotify-dashboard-2026.html     # Dashboard web interactif
-├── spotify-dashboard-2026.xlsx     # Classeur excel 
+├── spotify-dashboard-2026.xlsx     # Classeur excel
 └── README.md                       # Ce fichier
 ```
 
@@ -66,7 +371,7 @@ Somme brute de tous les streams quotidiens des 200 tracks.
 ```excel
 =COUNTIF(Raw_Data!K2:K201, "Rising")
 ```
-Compte les tracks dont la colonne `trend` vaut `"Rising"`.
+Compte les tracks dont la colonne `trend` est `"Rising"`.
 
 #### Nombre d'artistes uniques
 ```excel
@@ -136,7 +441,7 @@ Formaté en `0.00%` dans Excel.
 
 ---
 
-### 3. Analyse des tendances (Trend Analysis)
+### 3. Analyse des tendances 
 
 #### Variation de streams (stream change)
 La colonne `stream_change` représente la différence absolue de streams entre J et J-1 :
@@ -163,7 +468,7 @@ Il combine la performance immédiate et la dynamique hebdomadaire.
 
 ---
 
-### 4. Analyse géographique (Country Analysis)
+### 4. Analyse géographique
 
 #### Tracks par pays
 ```excel
@@ -203,13 +508,13 @@ Variante du `SUMPRODUCT` dédoublonnant, filtré par pays.
 
 ---
 
-## 🎨 Design & Charte graphique
+## Design & charte graphique
 
 Le dashboard reprend ma palette personnalisée **dark mode** inspirée de mon propre portfolio :
 
 ```css
 --bg:     #080B0F   /* Fond principal */
---cyan:   #00D4FF   /* Accent primaire :streams, KPIs clés */
+--cyan:   #00D4FF   /* Accent primaire : streams, KPIs clés */
 --teal:   #00B8A0   /* Accent secondaire : 7 jours, pays */
 --amber:  #F5A623   /* Alerte / New tracks */
 --blue:   #5B9CF6   /* Artistes, données secondaires */
@@ -227,7 +532,7 @@ Le dashboard reprend ma palette personnalisée **dark mode** inspirée de mon pr
 
 ---
 
-##  Stack technique
+## Stack technique
 
 ### Version Web (HTML)
 | Outil | Usage |
